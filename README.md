@@ -121,19 +121,20 @@ npm run dev
 
 ### Available Scripts
 
-| Script                   | Description                      |
-| ------------------------ | -------------------------------- |
-| `npm run dev`            | Start dev server with hot reload |
-| `npm run build`          | Compile TypeScript               |
-| `npm run start:prod`     | Production mode                  |
-| `npm run test`           | Run unit tests                   |
-| `npm run test:watch`     | Tests in watch mode              |
-| `npm run test:cov`       | Coverage report                  |
-| `npm run test:e2e`       | End-to-end tests                 |
-| `npm run lint`           | ESLint                           |
-| `npm run format`         | Prettier                         |
-| `npx prisma migrate dev` | Run migrations                   |
-| `npx prisma studio`      | Prisma admin UI                  |
+| Script                    | Description                      |
+| ------------------------- | -------------------------------- |
+| `npm run dev`             | Start dev server with hot reload |
+| `npm run build`           | Compile TypeScript               |
+| `npm run start:prod`      | Production mode                  |
+| `npm run test`            | Run unit tests                   |
+| `npm run test:watch`      | Tests in watch mode              |
+| `npm run test:cov`        | Coverage report                  |
+| `npm run test:e2e`        | End-to-end tests                 |
+| `npm run lint`            | ESLint                           |
+| `npm run format`          | Prettier                         |
+| `npx prisma migrate dev`  | Run migrations                   |
+| `npx prisma studio`       | Prisma admin UI                  |
+| `npm run generate:module` | Generate new DDD module          |
 
 ### Swagger Documentation
 
@@ -141,7 +142,28 @@ After starting the server, visit `http://localhost:3000/api/docs`
 
 ## Creating a New Module
 
-Use the existing `user` or `post` module as a template. Each module follows this structure:
+### Using the Generator
+
+```bash
+npm run generate:module Product
+```
+
+This creates a complete module at `src/modules/product/` with:
+
+- **Domain** — Entity extending `BaseEntity`, repository interface extending `IBaseRepository`
+- **Application** — Commands/Queries extending base handlers with `before/after` hooks
+- **Infrastructure** — Repository extending `BaseRepositoryImpl`, mapper
+- **Presentation** — Controller extending base CRUD controller
+- **Module** — All providers wired up
+
+### After generating:
+
+1. Add your model to `prisma/schema.prisma`
+2. Run `npx prisma migrate dev --name add-<module>`
+3. Import `<Module>Module` in `app.module.ts`
+4. Customize entity fields, DTOs, and handlers
+
+### Module Structure
 
 ```
 modules/your-module/
@@ -165,13 +187,89 @@ modules/your-module/
 └── your-module.module.ts
 ```
 
-### Quick Steps
+## Base Abstractions
 
-1. **Domain** — Define entity, value objects, and repository interface
-2. **Application** — Create commands/queries and their handlers, DTOs with Swagger decorators
-3. **Infrastructure** — Implement repository using Prisma, create mapper, add processors
-4. **Presentation** — Create controller with guards, audit log decorator, Swagger tags
-5. **Module** — Register all providers and wire CQRS module
+The boilerplate provides base classes that new modules extend. This eliminates boilerplate for standard CRUD while keeping full control via hooks.
+
+### BaseEntity
+
+```typescript
+import { BaseEntity } from '@shared/base';
+
+export class Product extends BaseEntity {
+  // getId(), getCreatedAt(), getUpdatedAt(), getDeletedAt(), isDeleted(), markDeleted()
+  // Already provided by BaseEntity — just implement them
+}
+```
+
+### BaseRepository (Generic CRUD)
+
+```typescript
+import { BaseRepositoryImpl } from '@shared/base';
+
+@Injectable()
+export class ProductRepositoryImpl extends BaseRepositoryImpl<Product, any> {
+  constructor(prisma: PrismaService) {
+    super(prisma, 'product'); // Prisma model name
+  }
+  // Just implement 4 mapping methods: toDomain, toCreateData, toUpdateData, getId
+}
+```
+
+Provides: `findById`, `findAll` (paginated), `create`, `update`, `delete` (soft).
+
+### Base Handlers (with Hooks)
+
+```typescript
+export class CreateProductHandler extends BaseCreateHandler<Product> {
+  protected async validate(data: any): Promise<void> {
+    // Override: throw ConflictError if email exists, etc.
+    // Default: no-op — skip if not needed
+  }
+  protected async createEntity(data: any): Promise<Product> {
+    // Must implement: create your domain entity
+  }
+  protected async saveEntity(entity: Product): Promise<Product> {
+    return this.repository.create(entity);
+  }
+  protected getEntityId(entity: Product): string {
+    return entity.getId();
+  }
+  protected async afterCreate(entity: Product): Promise<void> {
+    // Override: dispatch domain events, send notifications, etc.
+    // Default: no-op — skip if not needed
+  }
+}
+```
+
+Available hooks per handler type:
+
+- **Create**: `validate()` → `createEntity()` → `saveEntity()` → `afterCreate()`
+- **Update**: `findEntity()` → `validateUpdate()` → `updateEntity()` → `saveEntity()` → `afterUpdate()`
+- **Delete**: `findEntity()` → `beforeDelete()` → `deleteEntity()` → `afterDelete()`
+- **GetById**: `findEntity()` → `toResponseDto()`
+- **List**: `findEntities()` → `toResponseDto()` per item → `toPaginationMeta()`
+
+### BaseController (CRUD Endpoints)
+
+```typescript
+const BaseProductController = createBaseController({
+  name: 'Products', // Swagger tag name
+  createDto: CreateProductDto,
+  updateDto: UpdateProductDto,
+  responseDto: ProductResponseDto,
+  createCommand: CreateProductCommand,
+  updateCommand: UpdateProductCommand,
+  deleteCommand: DeleteProductCommand,
+  getByIdQuery: GetProductQuery,
+  listQuery: ListProductsQuery,
+});
+
+export class ProductController extends BaseProductController {
+  // Inherits: POST /, GET /:id, GET /, PATCH /:id, DELETE /:id
+  // Add custom endpoints here (e.g., PATCH /:id/publish)
+}
+```
 
 ## Path Aliases
 
