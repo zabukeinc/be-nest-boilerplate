@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SharedModule } from './@shared/shared.module';
 import { UserModule } from './modules/user/user.module';
 import { PostModule } from './modules/post/post.module';
+import { ProductModule } from './modules/product/product.module';
 import { AppConfigService } from './@shared/config';
 import { AllExceptionsFilter } from './@shared/filters/all-exceptions.filter';
 import { TransformInterceptor } from './@shared/interceptors/transform.interceptor';
@@ -21,6 +22,7 @@ import { AuditLogProcessor } from './@shared/processors/audit-log.processor';
     ]),
     UserModule,
     PostModule,
+    ProductModule,
   ],
   providers: [
     AuditLogProcessor,
