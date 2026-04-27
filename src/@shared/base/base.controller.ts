@@ -26,11 +26,11 @@ export interface BaseControllerConfig {
   createDto: any;
   updateDto: any;
   responseDto: any;
-  createCommand: any;
-  updateCommand: any;
-  deleteCommand: any;
-  getByIdQuery: any;
-  listQuery: any;
+  createCommand: new (data: any) => any;
+  updateCommand: new (id: string, data: any) => any;
+  deleteCommand: new (id: string) => any;
+  getByIdQuery: new (id: string) => any;
+  listQuery: new (pagination: PaginationQueryDto) => any;
   guard?: any;
 }
 
@@ -41,14 +41,14 @@ export function createBaseController(config: BaseControllerConfig) {
   @UseGuards(config.guard || SupabaseAuthGuard)
   class BaseController {
     constructor(
-      protected readonly commandBus: CommandBus,
-      protected readonly queryBus: QueryBus,
+      public readonly commandBus: CommandBus,
+      public readonly queryBus: QueryBus,
     ) {}
 
     @Post()
     @ApiOperation({ summary: `Create a new ${config.name.toLowerCase()}` })
     @ApiCreatedResponse({ type: config.responseDto })
-    async create(@Body() dto: any) {
+    async create(@Body() dto: InstanceType<typeof config.createDto>) {
       const id = await this.commandBus.execute(new config.createCommand(dto));
       return this.queryBus.execute(new config.getByIdQuery(id));
     }
@@ -70,7 +70,7 @@ export function createBaseController(config: BaseControllerConfig) {
     @Patch(':id')
     @ApiOperation({ summary: `Update ${config.name.toLowerCase()}` })
     @ApiOkResponse({ type: config.responseDto })
-    async update(@Param('id') id: string, @Body() dto: any) {
+    async update(@Param('id') id: string, @Body() dto: InstanceType<typeof config.updateDto>) {
       await this.commandBus.execute(new config.updateCommand(id, dto));
       return this.queryBus.execute(new config.getByIdQuery(id));
     }

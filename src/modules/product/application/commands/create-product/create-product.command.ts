@@ -1,6 +1,5 @@
+import { CreateProductDto } from '../../dtos/create-product.dto';
+
 export class CreateProductCommand {
-  constructor(
-    public readonly name: string,
-    public readonly price: number,
-  ) {}
+  constructor(public readonly data: CreateProductDto) {}
 }

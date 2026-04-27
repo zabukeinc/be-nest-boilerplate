@@ -1,7 +1,8 @@
+import { UpdateProductDto } from '../../dtos/update-product.dto';
+
 export class UpdateProductCommand {
   constructor(
     public readonly id: string,
-    public readonly name?: string,
-    public readonly price?: number,
+    public readonly data: UpdateProductDto,
   ) {}
 }
