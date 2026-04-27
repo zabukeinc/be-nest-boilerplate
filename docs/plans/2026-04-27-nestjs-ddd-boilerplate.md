@@ -1,6 +1,6 @@
 # NestJS DDD Hexagonal Boilerplate Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Implementation plan for the NestJS DDD Hexagonal Boilerplate. Follow tasks in order, checking off each step.
 
 **Goal:** Build a production-ready NestJS + TypeScript boilerplate with DDD, Hexagonal Architecture, CQRS, Supabase integration, and all cross-cutting concerns.
 
@@ -13,6 +13,7 @@
 ## Task 1: Project Scaffolding & Dependencies
 
 **Files:**
+
 - Create: `package.json`
 - Create: `nest-cli.json`
 - Create: `tsconfig.json`
@@ -168,10 +169,7 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['@typescript-eslint/eslint-plugin'],
-  extends: [
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
-  ],
+  extends: ['plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'],
   root: true,
   env: {
     node: true,
@@ -270,6 +268,7 @@ git commit -m "chore: initialize nestjs project with dependencies and config"
 ## Task 2: Error Classes & Error Catalog
 
 **Files:**
+
 - Create: `src/@shared/errors/app.error.ts`
 - Create: `src/@shared/errors/not-found.error.ts`
 - Create: `src/@shared/errors/validation.error.ts`
@@ -368,7 +367,11 @@ import { AppError } from './app.error';
 import { ErrorCode } from './error-code.enum';
 
 export class UnauthorizedError extends AppError {
-  constructor(message: string = 'Unauthorized', code: ErrorCode = ErrorCode.UNAUTHORIZED, details?: any) {
+  constructor(
+    message: string = 'Unauthorized',
+    code: ErrorCode = ErrorCode.UNAUTHORIZED,
+    details?: any,
+  ) {
     super(code, message, 401, details);
   }
 }
@@ -440,6 +443,7 @@ git commit -m "feat: add error classes hierarchy and error code catalog"
 ## Task 3: Standard Response Format
 
 **Files:**
+
 - Create: `src/@shared/response/response.interface.ts`
 - Create: `src/@shared/response/response.factory.ts`
 - Create: `src/@shared/response/index.ts`
@@ -586,6 +590,7 @@ git commit -m "feat: add standard response format interfaces and factory"
 ## Task 4: Configuration Module (Zod Validation)
 
 **Files:**
+
 - Create: `src/@shared/config/config.schema.ts`
 - Create: `src/@shared/config/config.service.ts`
 - Create: `src/@shared/config/config.module.ts`
@@ -766,6 +771,7 @@ git commit -m "feat: add config module with zod validation and typed service"
 ## Task 5: Logging Module (nestjs-pino)
 
 **Files:**
+
 - Create: `src/@shared/logging/logging.service.ts`
 - Create: `src/@shared/logging/logging.module.ts`
 - Create: `src/@shared/logging/index.ts`
@@ -819,9 +825,7 @@ import { LoggingService } from './logging.service';
         return {
           pinoHttp: {
             level: configService.get('LOG_LEVEL') || 'info',
-            transport: isDev
-              ? { target: 'pino-pretty', options: { colorize: true } }
-              : undefined,
+            transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
             redact: ['req.headers.authorization', 'req.body.password'],
             serializers: {
               req(req: any) {
@@ -864,6 +868,7 @@ git commit -m "feat: add logging module with pino structured logging"
 ## Task 6: Middleware, Interceptors, Filters & Guards
 
 **Files:**
+
 - Create: `src/@shared/middleware/request-id.middleware.ts`
 - Create: `src/@shared/interceptors/transform.interceptor.ts`
 - Create: `src/@shared/interceptors/logging.interceptor.ts`
@@ -896,12 +901,7 @@ export class RequestIdMiddleware implements NestMiddleware {
 Create `src/@shared/interceptors/transform.interceptor.ts`:
 
 ```typescript
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -913,10 +913,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
   constructor(private readonly reflector: Reflector) {}
 
   intercept(context: ExecutionContext, next: CallHandler<T>): Observable<any> {
-    const skipTransform = this.reflector.get<boolean>(
-      SKIP_TRANSFORM_KEY,
-      context.getHandler(),
-    );
+    const skipTransform = this.reflector.get<boolean>(SKIP_TRANSFORM_KEY, context.getHandler());
     if (skipTransform) {
       return next.handle();
     }
@@ -927,12 +924,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
     return next.handle().pipe(
       map((data) => {
         if (data && data.pagination) {
-          return ResponseFactory.paginated(
-            data.items,
-            data.pagination,
-            'Success',
-            requestId,
-          );
+          return ResponseFactory.paginated(data.items, data.pagination, 'Success', requestId);
         }
         return ResponseFactory.success(data, 'Success', requestId);
       }),
@@ -957,13 +949,7 @@ export const SkipTransform = () => SetMetadata(SKIP_TRANSFORM_KEY, true);
 Create `src/@shared/interceptors/logging.interceptor.ts`:
 
 ```typescript
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
@@ -1085,12 +1071,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 Create `src/@shared/guards/auth.guard.ts`:
 
 ```typescript
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { SupabaseService } from '@shared/supabase';
 
 @Injectable()
@@ -1197,6 +1178,7 @@ git commit -m "feat: add request-id middleware, transform/logging interceptors, 
 ## Task 7: Pagination DTOs & Utilities
 
 **Files:**
+
 - Create: `src/@shared/pagination/pagination.dto.ts`
 - Create: `src/@shared/pagination/pagination.utils.ts`
 - Create: `src/@shared/pagination/index.ts`
@@ -1301,6 +1283,7 @@ git commit -m "feat: add pagination DTOs and utility functions"
 ## Task 8: Prisma Schema & Module
 
 **Files:**
+
 - Modify: `prisma/schema.prisma`
 - Create: `src/@shared/database/prisma.service.ts`
 - Create: `src/@shared/database/prisma.module.ts`
@@ -1450,6 +1433,7 @@ git commit -m "feat: add prisma schema with user, post, audit_log models and pri
 ## Task 9: Supabase Module
 
 **Files:**
+
 - Create: `src/@shared/supabase/supabase.module.ts`
 - Create: `src/@shared/supabase/supabase.service.ts`
 - Create: `src/@shared/supabase/storage.port.ts`
@@ -1485,14 +1469,8 @@ export class SupabaseService {
   public readonly adminClient: SupabaseClient;
 
   constructor(private readonly configService: AppConfigService) {
-    this.client = createClient(
-      configService.supabaseUrl,
-      configService.supabaseKey,
-    );
-    this.adminClient = createClient(
-      configService.supabaseUrl,
-      configService.supabaseServiceKey,
-    );
+    this.client = createClient(configService.supabaseUrl, configService.supabaseKey);
+    this.adminClient = createClient(configService.supabaseUrl, configService.supabaseServiceKey);
   }
 }
 ```
@@ -1527,9 +1505,7 @@ export class SupabaseStorageAdapter implements StoragePort {
   }
 
   async delete(bucket: string, path: string): Promise<void> {
-    const { error } = await this.supabaseService.adminClient.storage
-      .from(bucket)
-      .remove([path]);
+    const { error } = await this.supabaseService.adminClient.storage.from(bucket).remove([path]);
 
     if (error) {
       throw new Error(`Failed to delete file: ${error.message}`);
@@ -1597,6 +1573,7 @@ git commit -m "feat: add supabase module with auth client, storage port, and sto
 ## Task 10: Cache Module & Decorator
 
 **Files:**
+
 - Create: `src/@shared/cache/cache.module.ts`
 - Create: `src/@shared/cache/cache.service.ts`
 - Create: `src/@shared/cache/cache.decorator.ts`
@@ -1782,6 +1759,7 @@ git commit -m "feat: add cache module with redis and cacheable decorator"
 ## Task 11: BullMQ Module for Job Queues
 
 **Files:**
+
 - Create: `src/@shared/queue/queue.module.ts`
 - Create: `src/@shared/queue/queue.constants.ts`
 - Create: `src/@shared/queue/index.ts`
@@ -1859,6 +1837,7 @@ git commit -m "feat: add bullmq queue module with named queues"
 ## Task 12: Audit Log Decorator & Processor
 
 **Files:**
+
 - Create: `src/@shared/decorators/audit-log.decorator.ts`
 - Create: `src/@shared/interceptors/audit.interceptor.ts`
 - Create: `src/@shared/processors/audit-log.processor.ts`
@@ -1877,8 +1856,7 @@ export interface AuditLogOptions {
   entity: string;
 }
 
-export const AuditLog = (options: AuditLogOptions) =>
-  SetMetadata(AUDIT_LOG_KEY, options);
+export const AuditLog = (options: AuditLogOptions) => SetMetadata(AUDIT_LOG_KEY, options);
 ```
 
 - [ ] **Step 2: Create audit interceptor**
@@ -1913,16 +1891,18 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((result) => {
-        this.auditQueue.add('audit-log', {
-          userId,
-          action: auditOptions.action,
-          entity: auditOptions.entity,
-          entityId: result?.data?.id || result?.id,
-          changes: request.body,
-          timestamp: new Date().toISOString(),
-        }).catch(() => {
-          // silently fail - don't block request
-        });
+        this.auditQueue
+          .add('audit-log', {
+            userId,
+            action: auditOptions.action,
+            entity: auditOptions.entity,
+            entityId: result?.data?.id || result?.id,
+            changes: request.body,
+            timestamp: new Date().toISOString(),
+          })
+          .catch(() => {
+            // silently fail - don't block request
+          });
       }),
     );
   }
@@ -1973,6 +1953,7 @@ git commit -m "feat: add audit log decorator, interceptor, and bullmq processor"
 ## Task 13: User Module — Domain Layer
 
 **Files:**
+
 - Create: `src/modules/user/domain/value-objects/user-id.vo.ts`
 - Create: `src/modules/user/domain/value-objects/email.vo.ts`
 - Create: `src/modules/user/domain/entities/user.entity.ts`
@@ -2181,7 +2162,12 @@ export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
-  findAll(page: number, limit: number, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<PaginatedResult<User>>;
+  findAll(
+    page: number,
+    limit: number,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc',
+  ): Promise<PaginatedResult<User>>;
   create(user: User): Promise<User>;
   update(user: User): Promise<User>;
   delete(id: string): Promise<void>;
@@ -2200,6 +2186,7 @@ git commit -m "feat: add user domain layer - entity, value objects, events, repo
 ## Task 14: User Module — Application Layer (CQRS)
 
 **Files:**
+
 - Create: `src/modules/user/application/dtos/create-user.dto.ts`
 - Create: `src/modules/user/application/dtos/update-user.dto.ts`
 - Create: `src/modules/user/application/dtos/user-response.dto.ts`
@@ -2299,7 +2286,10 @@ Create `src/modules/user/application/commands/create-user/create-user.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CreateUserCommand } from './create-user.command';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { ConflictError } from '@shared/errors';
 import { ErrorCode } from '@shared/errors';
 import { User } from '../../../domain/entities/user.entity';
@@ -2337,7 +2327,10 @@ Create `src/modules/user/application/commands/create-user/create-user.handler.ts
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CreateUserCommand } from './create-user.command';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { ConflictError, ErrorCode } from '@shared/errors';
 import { User } from '../../../domain/entities/user.entity';
 import { UserCreatedEvent } from '../../../domain/events/user-created.event';
@@ -2358,7 +2351,9 @@ export class CreateUserHandler implements ICommandHandler<CreateUserCommand, str
     const user = User.create(command.email, command.name);
     const savedUser = await this.userRepository.create(user);
 
-    this.eventBus.publish(new UserCreatedEvent(savedUser.getId(), savedUser.getEmail(), savedUser.getName()));
+    this.eventBus.publish(
+      new UserCreatedEvent(savedUser.getId(), savedUser.getEmail(), savedUser.getName()),
+    );
 
     return savedUser.getId();
   }
@@ -2385,14 +2380,15 @@ Create `src/modules/user/application/commands/update-user/update-user.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UpdateUserCommand } from './update-user.command';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { NotFoundError, ErrorCode } from '@shared/errors';
 
 @CommandHandler(UpdateUserCommand)
 export class UpdateUserHandler implements ICommandHandler<UpdateUserCommand, string> {
-  constructor(
-    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository) {}
 
   async execute(command: UpdateUserCommand): Promise<string> {
     const user = await this.userRepository.findById(command.id);
@@ -2429,16 +2425,17 @@ Create `src/modules/user/application/queries/get-user/get-user.handler.ts`:
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetUserQuery } from './get-user.query';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { NotFoundError, ErrorCode } from '@shared/errors';
 import { UserResponseDto } from '../../dtos/user-response.dto';
 import { UserMapper } from '../../../infrastructure/mappers/user.mapper';
 
 @QueryHandler(GetUserQuery)
 export class GetUserHandler implements IQueryHandler<GetUserQuery, UserResponseDto> {
-  constructor(
-    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository) {}
 
   async execute(query: GetUserQuery): Promise<UserResponseDto> {
     const user = await this.userRepository.findById(query.id);
@@ -2469,7 +2466,10 @@ Create `src/modules/user/application/queries/list-users/list-users.handler.ts`:
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ListUsersQuery } from './list-users.query';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { UserResponseDto } from '../../dtos/user-response.dto';
 import { UserMapper } from '../../../infrastructure/mappers/user.mapper';
 import { PaginatedResult } from '@shared/pagination';
@@ -2482,9 +2482,7 @@ interface ListUsersResult {
 
 @QueryHandler(ListUsersQuery)
 export class ListUsersHandler implements IQueryHandler<ListUsersQuery, ListUsersResult> {
-  constructor(
-    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository) {}
 
   async execute(query: ListUsersQuery): Promise<ListUsersResult> {
     const result = await this.userRepository.findAll(
@@ -2526,6 +2524,7 @@ git commit -m "feat: add user application layer - commands, queries, handlers, D
 ## Task 15: User Module — Infrastructure Layer
 
 **Files:**
+
 - Create: `src/modules/user/infrastructure/mappers/user.mapper.ts`
 - Create: `src/modules/user/infrastructure/repositories/user.repository.impl.ts`
 - Create: `src/modules/user/infrastructure/adapters/supabase-auth.adapter.ts`
@@ -2676,7 +2675,10 @@ export class SupabaseAuthAdapter {
     });
 
     if (error) {
-      throw new DomainError(`Failed to create auth user: ${error.message}`, ErrorCode.USER_EMAIL_EXISTS);
+      throw new DomainError(
+        `Failed to create auth user: ${error.message}`,
+        ErrorCode.USER_EMAIL_EXISTS,
+      );
     }
 
     return data.user.id;
@@ -2685,7 +2687,10 @@ export class SupabaseAuthAdapter {
   async deleteUser(userId: string): Promise<void> {
     const { error } = await this.supabaseService.adminClient.auth.admin.deleteUser(userId);
     if (error) {
-      throw new DomainError(`Failed to delete auth user: ${error.message}`, ErrorCode.USER_NOT_FOUND);
+      throw new DomainError(
+        `Failed to delete auth user: ${error.message}`,
+        ErrorCode.USER_NOT_FOUND,
+      );
     }
   }
 }
@@ -2726,6 +2731,7 @@ git commit -m "feat: add user infrastructure layer - repository, mapper, auth ad
 ## Task 16: User Module — Presentation Layer & Module Wiring
 
 **Files:**
+
 - Create: `src/modules/user/presentation/user.controller.ts`
 - Create: `src/modules/user/user.module.ts`
 
@@ -2868,6 +2874,7 @@ git commit -m "feat: add user presentation controller and module wiring"
 ## Task 17: Post Module — Domain Layer
 
 **Files:**
+
 - Create: `src/modules/post/domain/value-objects/slug.vo.ts`
 - Create: `src/modules/post/domain/entities/post.entity.ts`
 - Create: `src/modules/post/domain/events/post-published.event.ts`
@@ -3117,6 +3124,7 @@ git commit -m "feat: add post domain layer - entity, slug VO, events, repository
 ## Task 18: Post Module — Application Layer (CQRS)
 
 **Files:**
+
 - Create: `src/modules/post/application/dtos/create-post.dto.ts`
 - Create: `src/modules/post/application/dtos/update-post.dto.ts`
 - Create: `src/modules/post/application/dtos/post-response.dto.ts`
@@ -3230,14 +3238,15 @@ Create `src/modules/post/application/commands/create-post/create-post.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { CreatePostCommand } from './create-post.command';
-import { POST_REPOSITORY, IPostRepository } from '../../../domain/repositories/post.repository.interface';
+import {
+  POST_REPOSITORY,
+  IPostRepository,
+} from '../../../domain/repositories/post.repository.interface';
 import { Post } from '../../../domain/entities/post.entity';
 
 @CommandHandler(CreatePostCommand)
 export class CreatePostHandler implements ICommandHandler<CreatePostCommand, string> {
-  constructor(
-    @Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository,
-  ) {}
+  constructor(@Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository) {}
 
   async execute(command: CreatePostCommand): Promise<string> {
     const post = Post.create(command.title, command.authorId, command.content);
@@ -3268,7 +3277,10 @@ Create `src/modules/post/application/commands/publish-post/publish-post.handler.
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { PublishPostCommand } from './publish-post.command';
-import { POST_REPOSITORY, IPostRepository } from '../../../domain/repositories/post.repository.interface';
+import {
+  POST_REPOSITORY,
+  IPostRepository,
+} from '../../../domain/repositories/post.repository.interface';
 import { NotFoundError, DomainError, ErrorCode } from '@shared/errors';
 import { PostPublishedEvent } from '../../../domain/events/post-published.event';
 import { CacheService } from '@shared/cache';
@@ -3318,16 +3330,17 @@ Create `src/modules/post/application/queries/get-post/get-post.handler.ts`:
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetPostQuery } from './get-post.query';
-import { POST_REPOSITORY, IPostRepository } from '../../../domain/repositories/post.repository.interface';
+import {
+  POST_REPOSITORY,
+  IPostRepository,
+} from '../../../domain/repositories/post.repository.interface';
 import { NotFoundError, ErrorCode } from '@shared/errors';
 import { PostResponseDto } from '../../dtos/post-response.dto';
 import { PostMapper } from '../../../infrastructure/mappers/post.mapper';
 
 @QueryHandler(GetPostQuery)
 export class GetPostHandler implements IQueryHandler<GetPostQuery, PostResponseDto> {
-  constructor(
-    @Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository,
-  ) {}
+  constructor(@Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository) {}
 
   async execute(query: GetPostQuery): Promise<PostResponseDto> {
     const post = await this.postRepository.findById(query.id);
@@ -3362,7 +3375,10 @@ Create `src/modules/post/application/queries/list-posts/list-posts.handler.ts`:
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ListPostsQuery } from './list-posts.query';
-import { POST_REPOSITORY, IPostRepository } from '../../../domain/repositories/post.repository.interface';
+import {
+  POST_REPOSITORY,
+  IPostRepository,
+} from '../../../domain/repositories/post.repository.interface';
 import { PostResponseDto } from '../../dtos/post-response.dto';
 import { PostMapper } from '../../../infrastructure/mappers/post.mapper';
 import { PaginationMeta } from '@shared/response';
@@ -3374,9 +3390,7 @@ interface ListPostsResult {
 
 @QueryHandler(ListPostsQuery)
 export class ListPostsHandler implements IQueryHandler<ListPostsQuery, ListPostsResult> {
-  constructor(
-    @Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository,
-  ) {}
+  constructor(@Inject(POST_REPOSITORY) private readonly postRepository: IPostRepository) {}
 
   async execute(query: ListPostsQuery): Promise<ListPostsResult> {
     const result = await this.postRepository.findAll(
@@ -3418,6 +3432,7 @@ git commit -m "feat: add post application layer - commands, queries, handlers, D
 ## Task 19: Post Module — Infrastructure Layer
 
 **Files:**
+
 - Create: `src/modules/post/infrastructure/mappers/post.mapper.ts`
 - Create: `src/modules/post/infrastructure/repositories/post.repository.impl.ts`
 - Create: `src/modules/post/infrastructure/adapters/supabase-storage.adapter.ts`
@@ -3629,9 +3644,7 @@ import { QUEUE_NAMES } from '@shared/queue';
 export class PostPublishedHandler implements IEventHandler<PostPublishedEvent> {
   private readonly logger = new Logger(PostPublishedHandler.name);
 
-  constructor(
-    @InjectQueue(QUEUE_NAMES.NOTIFICATION) private readonly notificationQueue: Queue,
-  ) {}
+  constructor(@InjectQueue(QUEUE_NAMES.NOTIFICATION) private readonly notificationQueue: Queue) {}
 
   async handle(event: PostPublishedEvent) {
     this.logger.log(`Post published: ${event.postId} by author ${event.authorId}`);
@@ -3655,6 +3668,7 @@ git commit -m "feat: add post infrastructure layer - repository, mapper, storage
 ## Task 20: Post Module — Presentation Layer & Module Wiring
 
 **Files:**
+
 - Create: `src/modules/post/presentation/post.controller.ts`
 - Create: `src/modules/post/user.module.ts` (actually `post.module.ts`)
 
@@ -3833,6 +3847,7 @@ git commit -m "feat: add post presentation controller and module wiring"
 ## Task 21: App Module & Main.ts (Bootstrap)
 
 **Files:**
+
 - Create: `src/@shared/shared.module.ts`
 - Modify: `src/app.module.ts`
 - Modify: `src/main.ts`
@@ -3852,22 +3867,8 @@ import { QueueModule } from './queue';
 
 @Global()
 @Module({
-  imports: [
-    ConfigModule,
-    LoggingModule,
-    PrismaModule,
-    SupabaseModule,
-    CacheModule,
-    QueueModule,
-  ],
-  exports: [
-    ConfigModule,
-    LoggingModule,
-    PrismaModule,
-    SupabaseModule,
-    CacheModule,
-    QueueModule,
-  ],
+  imports: [ConfigModule, LoggingModule, PrismaModule, SupabaseModule, CacheModule, QueueModule],
+  exports: [ConfigModule, LoggingModule, PrismaModule, SupabaseModule, CacheModule, QueueModule],
 })
 export class SharedModule {}
 ```
@@ -3984,6 +3985,7 @@ git commit -m "feat: add app module, main.ts bootstrap, global interceptors, swa
 ## Task 22: User Event Handler & Delete Command
 
 **Files:**
+
 - Create: `src/modules/user/application/events/user-created.handler.ts`
 - Create: `src/modules/user/application/commands/delete-user/delete-user.command.ts`
 - Create: `src/modules/user/application/commands/delete-user/delete-user.handler.ts`
@@ -4007,9 +4009,7 @@ import { Logger } from '@nestjs/common';
 export class UserCreatedHandler implements IEventHandler<UserCreatedEvent> {
   private readonly logger = new Logger(UserCreatedHandler.name);
 
-  constructor(
-    @InjectQueue(QUEUE_NAMES.EMAIL) private readonly emailQueue: Queue,
-  ) {}
+  constructor(@InjectQueue(QUEUE_NAMES.EMAIL) private readonly emailQueue: Queue) {}
 
   async handle(event: UserCreatedEvent) {
     this.logger.log(`User created: ${event.userId} - ${event.email}`);
@@ -4038,14 +4038,15 @@ Create `src/modules/user/application/commands/delete-user/delete-user.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { DeleteUserCommand } from './delete-user.command';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { NotFoundError, ErrorCode } from '@shared/errors';
 
 @CommandHandler(DeleteUserCommand)
 export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand, void> {
-  constructor(
-    @Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository,
-  ) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepository: IUserRepository) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
     const user = await this.userRepository.findById(command.id);
@@ -4130,6 +4131,7 @@ git commit -m "feat: add user event handler, delete command, update module wirin
 ## Task 23: Barrel Exports & @shared Index
 
 **Files:**
+
 - Create: `src/@shared/index.ts`
 
 - [ ] **Step 1: Create shared barrel export**
@@ -4160,6 +4162,7 @@ git commit -m "feat: add barrel exports for @shared module"
 ## Task 24: Testing Infrastructure & Example Tests
 
 **Files:**
+
 - Create: `src/@shared/testing/test-app.factory.ts`
 - Create: `src/@shared/testing/mock-providers.ts`
 - Create: `src/modules/user/domain/entities/user.entity.spec.ts`
@@ -4204,7 +4207,7 @@ export class TestAppFactory {
           ],
         }),
         CqrsModule,
-        ...moduleMetadata.imports || [],
+        ...(moduleMetadata.imports || []),
       ],
       providers: [...(moduleMetadata.providers || [])],
       controllers: [...(moduleMetadata.controllers || [])],
@@ -4418,7 +4421,10 @@ import { Test } from '@nestjs/testing';
 import { CqrsModule, EventBus } from '@nestjs/cqrs';
 import { CreateUserHandler } from './create-user.handler';
 import { CreateUserCommand } from './create-user.command';
-import { USER_REPOSITORY, IUserRepository } from '../../../domain/repositories/user.repository.interface';
+import {
+  USER_REPOSITORY,
+  IUserRepository,
+} from '../../../domain/repositories/user.repository.interface';
 import { User } from '../../../domain/entities/user.entity';
 import { ConflictError } from '@shared/errors';
 
@@ -4438,10 +4444,7 @@ describe('CreateUserHandler', () => {
 
     const module = await Test.createTestingModule({
       imports: [CqrsModule],
-      providers: [
-        CreateUserHandler,
-        { provide: USER_REPOSITORY, useValue: mockRepo },
-      ],
+      providers: [CreateUserHandler, { provide: USER_REPOSITORY, useValue: mockRepo }],
     }).compile();
 
     handler = module.get(CreateUserHandler);
@@ -4482,6 +4485,7 @@ git commit -m "feat: add testing infrastructure and unit tests for user module"
 ## Task 25: Final Polish — Scripts, .env, Linting
 
 **Files:**
+
 - Modify: `package.json` (scripts)
 - Copy: `.env.example` → `.env` (for development)
 
@@ -4599,30 +4603,30 @@ git commit -m "chore: add scripts, e2e test config, env setup, finalize boilerpl
 
 This plan creates a production-ready NestJS DDD Hexagonal Boilerplate with:
 
-| Task | Component |
-|---|---|
-| 1 | Project scaffolding, dependencies, path aliases |
-| 2 | Error classes & error catalog |
-| 3 | Standard response format (ApiResponse, PaginatedResponse, ApiErrorResponse) |
-| 4 | Config module with Zod validation |
-| 5 | Logging module with nestjs-pino |
-| 6 | Middleware (request ID), interceptors (transform, logging), filters (exceptions), guards (auth, roles) |
-| 7 | Pagination DTOs & utilities |
-| 8 | Prisma schema & service |
-| 9 | Supabase module (auth, DB, storage port) |
-| 10 | Cache module with Redis |
-| 11 | BullMQ queue module |
-| 12 | Audit log decorator & processor |
-| 13 | User module - domain layer |
-| 14 | User module - application layer (CQRS) |
-| 15 | User module - infrastructure layer |
-| 16 | User module - presentation & wiring |
-| 17 | Post module - domain layer |
-| 18 | Post module - application layer (CQRS) |
-| 19 | Post module - infrastructure layer |
-| 20 | Post module - presentation & wiring |
-| 21 | App module & main.ts bootstrap |
-| 22 | User event handler & delete command |
-| 23 | Barrel exports |
-| 24 | Testing infrastructure & examples |
-| 25 | Final polish — scripts, e2e config, build verification |
+| Task | Component                                                                                              |
+| ---- | ------------------------------------------------------------------------------------------------------ |
+| 1    | Project scaffolding, dependencies, path aliases                                                        |
+| 2    | Error classes & error catalog                                                                          |
+| 3    | Standard response format (ApiResponse, PaginatedResponse, ApiErrorResponse)                            |
+| 4    | Config module with Zod validation                                                                      |
+| 5    | Logging module with nestjs-pino                                                                        |
+| 6    | Middleware (request ID), interceptors (transform, logging), filters (exceptions), guards (auth, roles) |
+| 7    | Pagination DTOs & utilities                                                                            |
+| 8    | Prisma schema & service                                                                                |
+| 9    | Supabase module (auth, DB, storage port)                                                               |
+| 10   | Cache module with Redis                                                                                |
+| 11   | BullMQ queue module                                                                                    |
+| 12   | Audit log decorator & processor                                                                        |
+| 13   | User module - domain layer                                                                             |
+| 14   | User module - application layer (CQRS)                                                                 |
+| 15   | User module - infrastructure layer                                                                     |
+| 16   | User module - presentation & wiring                                                                    |
+| 17   | Post module - domain layer                                                                             |
+| 18   | Post module - application layer (CQRS)                                                                 |
+| 19   | Post module - infrastructure layer                                                                     |
+| 20   | Post module - presentation & wiring                                                                    |
+| 21   | App module & main.ts bootstrap                                                                         |
+| 22   | User event handler & delete command                                                                    |
+| 23   | Barrel exports                                                                                         |
+| 24   | Testing infrastructure & examples                                                                      |
+| 25   | Final polish — scripts, e2e config, build verification                                                 |
